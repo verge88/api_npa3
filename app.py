@@ -210,22 +210,23 @@ class MegaNormAPI:
         return "Документ без названия"
     
     def extract_content_sections(self, soup):
-    # Извлечение всего содержимого документа
-    # Удаление ненужных элементов
-        for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe', 'noscript']):
+        """Извлечение содержимого документа по разделам"""
+        # Удаление ненужных элементов
+        for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
             element.decompose()
 
-    # Поиск основного содержимого
+        sections = []
+    
+        # Поиск основного содержимого
         content_selectors = [
             '.document-content',
             '.doc-content',
             '.main-content',
             'main',
             '.content',
-            'article',
-            'body'
+            'article'
         ]
-
+    
         main_content = None
         for selector in content_selectors:
             element = soup.select_one(selector)
@@ -234,24 +235,48 @@ class MegaNormAPI:
                 break
     
         if not main_content:
-            main_content = soup
+            main_content = soup.find('body')
     
-        # Получаем весь HTML содержимого
-        full_html = str(main_content)
+        if main_content:
+            # Поиск заголовков и разделов
+            headings = main_content.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
     
-        # Очищаем HTML от лишних атрибутов и стилей
-        clean_html = re.sub(r'<(\w+)[^>]*>', r'<\1>', full_html)
-        clean_html = re.sub(r'class="[^"]*"', '', clean_html)
-        clean_html = re.sub(r'style="[^"]*"', '', clean_html)
-        clean_html = re.sub(r'id="[^"]*"', '', clean_html)
+            if headings:
+                current_section = {"title": "Введение", "content": ""}
     
-        # Возвращаем весь контент как одну секцию
-        return [{
-            "title": "Полное содержимое документа",
-            "content": clean_html,
-            "html": clean_html  # Добавляем исходный HTML для полноты
-        }]
-        
+                for element in main_content.descendants:
+                    if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                        # Сохраняем предыдущую секцию
+                        if current_section["content"].strip():
+                            current_section["content"] = self.clean_text(current_section["content"])
+                            sections.append(current_section)
+    
+                        # Начинаем новую секцию
+                        current_section = {
+                            "title": self.clean_text(element.get_text()),
+                            "content": ""
+                        }
+                    elif element.string and element.parent.name not in ['script', 'style']:
+                        text = element.string.strip()
+                        if text:
+                            current_section["content"] += text + " "
+    
+                # Добавляем последнюю секцию
+                if current_section["content"].strip():
+                    current_section["content"] = self.clean_text(current_section["content"])
+                    sections.append(current_section)
+            else:
+                # Если нет заголовков, добавляем весь контент как одну секцию
+                full_text = self.clean_text(main_content.get_text(separator=' '))
+                if full_text:
+                    sections.append({
+                        "title": "Содержание документа",
+                        "content": full_text
+                    })
+    
+        return sections  # Убираем ограничение на количество секций
+
+    
     def extract_metadata(self, soup, title):
         """Извлечение метаданных документа"""
         metadata = {}
@@ -340,35 +365,38 @@ def get_documents_by_type(doc_type):
         }), 500
 
 @app.route('/api/document')
-def get_document_details(self, doc_url):
-    #Получение детальной информации о документе
+def get_document_details():
+    """Получение детальной информации о документе"""
     try:
-        response = self.get_page(doc_url)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        doc_url = request.args.get('url')
+        if not doc_url:
+            return jsonify({
+                'error': 'Параметр url обязателен',
+                'status': 'error'
+            }), 400
         
-        # Извлечение основной информации
-        title = self.extract_title(soup)
-        content_sections = self.extract_content_sections(soup)
-        metadata = self.extract_metadata(soup, title)
+        # Проверка, что URL относится к MegaNorm
+        if not doc_url.startswith('https://meganorm.ru'):
+            return jsonify({
+                'error': 'URL должен принадлежать сайту meganorm.ru',
+                'status': 'error'
+            }), 400
         
-        return {
-            "title": title,
-            "sections": content_sections,
-            "metadata": metadata,
-            "url": doc_url,
-            "parsed_at": datetime.now().isoformat(),
-            "status": "success",
-            "full_html": response.text  # Добавляем полный HTML ответа
-        }
+        document = api.get_document_details(doc_url)
+        
+        # Проверяем, не произошла ли ошибка при парсинге
+        if document.get('status') == 'error':
+            return jsonify(document), 500
+            
+        return jsonify(document)
         
     except Exception as e:
-        return {
-            "error": f"Ошибка при получении деталей документа: {str(e)}",
-            "url": doc_url,
-            "status": "error",
-            "parsed_at": datetime.now().isoformat()
-        }
-        
+        return jsonify({
+            'error': str(e),
+            'status': 'error',
+            'url': request.args.get('url', 'не указан')
+        }), 500
+
 @app.route('/api/search')
 def search_documents():
     """Поиск документов по ключевым словам"""
