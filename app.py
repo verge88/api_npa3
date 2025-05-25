@@ -212,46 +212,46 @@ class MegaNormAPI:
     def extract_content_sections(self, soup):
     # Извлечение всего содержимого документа
     # Удаление ненужных элементов
-    for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe', 'noscript']):
-        element.decompose()
+        for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe', 'noscript']):
+            element.decompose()
 
     # Поиск основного содержимого
-    content_selectors = [
-        '.document-content',
-        '.doc-content',
-        '.main-content',
-        'main',
-        '.content',
-        'article',
-        'body'
-    ]
+        content_selectors = [
+            '.document-content',
+            '.doc-content',
+            '.main-content',
+            'main',
+            '.content',
+            'article',
+            'body'
+        ]
 
-    main_content = None
-    for selector in content_selectors:
-        element = soup.select_one(selector)
-        if element:
-            main_content = element
-            break
-
-    if not main_content:
-        main_content = soup
-
-    # Получаем весь HTML содержимого
-    full_html = str(main_content)
-
-    # Очищаем HTML от лишних атрибутов и стилей
-    clean_html = re.sub(r'<(\w+)[^>]*>', r'<\1>', full_html)
-    clean_html = re.sub(r'class="[^"]*"', '', clean_html)
-    clean_html = re.sub(r'style="[^"]*"', '', clean_html)
-    clean_html = re.sub(r'id="[^"]*"', '', clean_html)
-
-    # Возвращаем весь контент как одну секцию
-    return [{
-        "title": "Полное содержимое документа",
-        "content": clean_html,
-        "html": clean_html  # Добавляем исходный HTML для полноты
-    }]
+        main_content = None
+        for selector in content_selectors:
+            element = soup.select_one(selector)
+            if element:
+                main_content = element
+                break
     
+        if not main_content:
+            main_content = soup
+    
+        # Получаем весь HTML содержимого
+        full_html = str(main_content)
+    
+        # Очищаем HTML от лишних атрибутов и стилей
+        clean_html = re.sub(r'<(\w+)[^>]*>', r'<\1>', full_html)
+        clean_html = re.sub(r'class="[^"]*"', '', clean_html)
+        clean_html = re.sub(r'style="[^"]*"', '', clean_html)
+        clean_html = re.sub(r'id="[^"]*"', '', clean_html)
+    
+        # Возвращаем весь контент как одну секцию
+        return [{
+            "title": "Полное содержимое документа",
+            "content": clean_html,
+            "html": clean_html  # Добавляем исходный HTML для полноты
+        }]
+        
     def extract_metadata(self, soup, title):
         """Извлечение метаданных документа"""
         metadata = {}
