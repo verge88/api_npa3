@@ -210,11 +210,7 @@ class MegaNormAPI:
         return "Документ без названия"
     
     def extract_content_sections(self, soup):
-        """Извлечение содержимого документа по разделам"""
-        # Удаление ненужных элементов
-        # for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
-        #     element.decompose()
-
+        """Извлечение содержимого документа с сохранением HTML-структуры"""
         sections = []
     
         # Поиск основного содержимого
@@ -238,44 +234,39 @@ class MegaNormAPI:
             main_content = soup.find('body')
     
         if main_content:
-            # Поиск заголовков и разделов
-            headings = main_content.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+            # Удаление ненужных элементов
+            for element in main_content(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+                element.decompose()
     
-            if headings:
-                current_section = {"title": "Введение", "content": ""}
+            # Сохраняем HTML-структуру
+            html_content = str(main_content)
+            
+            # Очистка и форматирование HTML
+            html_content = re.sub(r'<(/?)font[^>]*>', r'<\1span>', html_content)  # Замена устаревших тегов
+            html_content = html_content.replace('\n', ' ').replace('\r', '')
+            html_content = re.sub(r'\s+', ' ', html_content)
+            html_content = re.sub(r'(<[^>]+>)\s+', r'\1', html_content)
+            html_content = re.sub(r'\s+(<[^>]+>)', r'\1', html_content)
     
-                for element in main_content.descendants:
-                    if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-                        # Сохраняем предыдущую секцию
-                        if current_section["content"].strip():
-                            current_section["content"] = self.clean_text(current_section["content"])
-                            sections.append(current_section)
+            # Добавляем базовые стили для сохранения форматирования
+            html_content = f'''
+            <div style="
+                font-family: 'Times New Roman', serif;
+                line-height: 1.6;
+                font-size: 14pt;
+                padding: 20px;
+            ">
+                {html_content}
+            </div>
+            '''
     
-                        # Начинаем новую секцию
-                        current_section = {
-                            "title": self.clean_text(element.get_text()),
-                            "content": ""
-                        }
-                    elif element.string and element.parent.name not in ['script', 'style']:
-                        text = element.string.strip()
-                        if text:
-                            current_section["content"] += text + " "
+            sections.append({
+                "title": "Основное содержание",
+                "content": html_content,
+                "is_html": True
+            })
     
-                # Добавляем последнюю секцию
-                if current_section["content"].strip():
-                    current_section["content"] = self.clean_text(current_section["content"])
-                    sections.append(current_section)
-            else:
-                # Если нет заголовков, добавляем весь контент как одну секцию
-                full_text = self.clean_text(main_content.get_text(separator=' '))
-                if full_text:
-                    sections.append({
-                        "title": "Содержание документа",
-                        "content": full_text
-                    })
-    
-        return sections  # Убираем ограничение на количество секций
-
+        return sections
     
     def extract_metadata(self, soup, title):
         """Извлечение метаданных документа"""
