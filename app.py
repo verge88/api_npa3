@@ -212,8 +212,8 @@ class MegaNormAPI:
     def extract_content_sections(self, soup):
         """Извлечение содержимого документа по разделам"""
         # Удаление ненужных элементов
-        for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
-            element.decompose()
+        # for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+        #     element.decompose()
 
         sections = []
     
