@@ -36,10 +36,10 @@ class MegaNormAPI:
             return ""
         
         # Удаление лишних пробелов и переносов
-        text = re.sub(r'\s+', ' ', text.strip())
+        #text = re.sub(r'\s+', ' ', text.strip())
         
         # Удаление специальных символов, которые могут вызвать проблемы с JSON
-        text = text.replace('\x00', '').replace('\ufeff', '')
+        #text = text.replace('\x00', '').replace('\ufeff', '')
         
         # Ограничение длины текста для предотвращения слишком больших ответов
         # if len(text) > 50000:  # Ограничиваем 50KB текста
