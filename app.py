@@ -210,7 +210,7 @@ class MegaNormAPI:
         return "Документ без названия"
     
     def extract_content_sections(self, soup):
-    """Извлечение всего содержимого документа"""
+    # Извлечение всего содержимого документа
     # Удаление ненужных элементов
     for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'iframe', 'noscript']):
         element.decompose()
@@ -341,7 +341,7 @@ def get_documents_by_type(doc_type):
 
 @app.route('/api/document')
 def get_document_details(self, doc_url):
-    """Получение детальной информации о документе"""
+    #Получение детальной информации о документе
     try:
         response = self.get_page(doc_url)
         soup = BeautifulSoup(response.text, 'html.parser')
